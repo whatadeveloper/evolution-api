@@ -26,7 +26,7 @@ export class SendMessageController {
 
   public async sendText({ instanceName }: InstanceDto, data: SendTextDto) {
     logger.verbose('requested sendText from ' + instanceName + ' instance');
-    return await this.waMonitor.waInstances[instanceName].textMessage(data);
+    return await this.waMonitor.waInstances[instanceName].textMessageFast(data);
   }
 
   public async sendTemplate({ instanceName }: InstanceDto, data: SendTemplateDto) {
