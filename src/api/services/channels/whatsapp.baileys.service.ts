@@ -2445,18 +2445,18 @@ export class BaileysStartupService extends ChannelStartupService {
     return result;
   }
 
-  // public async mediaMessage(data: SendMediaDto, isChatwoot = false) {
-  //   this.logger.verbose('Sending media message');
-  //   const generate = await this.prepareMediaMessage(data.mediaMessage);
-
-  //   return await this.sendMessageWithTyping(data.number, { ...generate.message }, data?.options, isChatwoot);
-  // }
-  public async mediaMessage(data: SendMediaDto) {
+  public async mediaMessage(data: SendMediaDto, isChatwoot = false) {
     this.logger.verbose('Sending media message');
     const generate = await this.prepareMediaMessage(data.mediaMessage);
 
-    return await this.sendMessageWithImage(data.number, { ...generate.message });
+    return await this.sendMessageWithTyping(data.number, { ...generate.message }, data?.options, isChatwoot);
   }
+  // public async mediaMessage(data: SendMediaDto) {
+  //   this.logger.verbose('Sending media message');
+  //   const generate = await this.prepareMediaMessage(data.mediaMessage);
+
+  //   return await this.sendMessageWithImage(data.number, { ...generate.message });
+  // }
 
   public async processAudio(audio: string, number: string) {
     this.logger.verbose('Processing audio');
