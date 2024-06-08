@@ -2056,6 +2056,94 @@ export class BaileysStartupService extends ChannelStartupService {
     );
   }
 
+  // Send Message Controller
+  public async textMessageFast(data: SendTextDto) {
+    this.logger.verbose('Sending text message');
+    try {
+      const messageSent = await this.client.sendMessage(
+        data.number,
+        {
+          text: data.textMessage.text,
+          linkPreview: false,
+        } as unknown as AnyMessageContent,
+        {} as unknown as MiscMessageGenerationOptions,
+      );
+      return messageSent;
+    } catch (error) {
+      this.logger.error(error);
+      throw new BadRequestException(error.toString());
+    }
+  }
+
+  // private async sendMessageWithImage<T = proto.IMessage>(number: string, message: T) {
+  //   this.logger.verbose('Sending message fast');
+  //   const isWA = (await this.whatsappNumber({ numbers: [number] }))?.shift();
+  //   if (!isWA.exists) {
+  //     throw new BadRequestException(`Number ${number} is not a valid WhatsApp number.`);
+  //   }
+  //   const sender = isWA.jid;
+  //   try {
+  //     const messageSent = await this.client.sendMessage(
+  //       sender,
+  //       {
+  //         ...message,
+  //       } as AnyMessageContent,
+  //       {},
+  //     );
+
+  //     return messageSent;
+  //   } catch (error) {
+  //     this.logger.error(error);
+  //     throw new BadRequestException(error.toString());
+  //   }
+  // }
+
+  private async sendMessageWithImage(number: string, mediaMessage: MediaMessageDto) {
+    this.logger.verbose('Sending image message');
+
+    const isWA = (await this.whatsappNumber({ numbers: [number] }))?.shift();
+    if (!isWA.exists) {
+      throw new BadRequestException(`Number ${number} is not a valid WhatsApp number.`);
+    }
+
+    const sender = isWA.jid;
+    const mediaBuffer = await this.getMediaBuffer(mediaMessage.media);
+
+    try {
+      const messageSent = await this.client.sendMessage(
+        sender,
+        {
+          image: mediaBuffer,
+          caption: mediaMessage.caption,
+          mimetype: mediaMessage.mimetype,
+          filename: mediaMessage.fileName,
+        } as AnyMessageContent,
+        {},
+      );
+
+      return messageSent;
+    } catch (error) {
+      this.logger.error(error);
+      throw new BadRequestException(error.toString());
+    }
+  }
+
+  private async getMediaBuffer(media: string): Promise<Buffer> {
+    if (isURL(media)) {
+      const response = await axios.get(media, { responseType: 'arraybuffer' });
+      return Buffer.from(response.data, 'binary');
+    } else if (isBase64(media)) {
+      return Buffer.from(media, 'base64');
+    } else {
+      throw new BadRequestException('Media must be a URL or base64');
+    }
+  }
+
+  public async mediaMessageFast(data: SendMediaDto) {
+    const generate = await this.prepareMediaMessage(data.mediaMessage);
+    return await this.sendMessageWithImage(data.number, { ...generate.message });
+  }
+
   public async pollMessage(data: SendPollDto) {
     this.logger.verbose('Sending poll message');
     return await this.sendMessageWithTyping(
@@ -2357,11 +2445,17 @@ export class BaileysStartupService extends ChannelStartupService {
     return result;
   }
 
-  public async mediaMessage(data: SendMediaDto, isChatwoot = false) {
+  // public async mediaMessage(data: SendMediaDto, isChatwoot = false) {
+  //   this.logger.verbose('Sending media message');
+  //   const generate = await this.prepareMediaMessage(data.mediaMessage);
+
+  //   return await this.sendMessageWithTyping(data.number, { ...generate.message }, data?.options, isChatwoot);
+  // }
+  public async mediaMessage(data: SendMediaDto) {
     this.logger.verbose('Sending media message');
     const generate = await this.prepareMediaMessage(data.mediaMessage);
 
-    return await this.sendMessageWithTyping(data.number, { ...generate.message }, data?.options, isChatwoot);
+    return await this.sendMessageWithImage(data.number, { ...generate.message });
   }
 
   public async processAudio(audio: string, number: string) {
